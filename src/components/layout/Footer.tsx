@@ -17,10 +17,10 @@ export function Footer() {
               ارائه دهنده سیگنال‌های معاملاتی حرفه‌ای فارکس و ارز دیجیتال. آموزش، تحلیل و ابزارهای معاملاتی برای موفقیت در بازارهای مالی.
             </p>
             <div className="flex gap-3">
-              <a href="#" className="w-10 h-10 bg-muted rounded-xl flex items-center justify-center text-muted-foreground hover:bg-primary hover:text-white transition-all">
+              <a href="https://instagram.com/forex._.signal" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-muted rounded-xl flex items-center justify-center text-muted-foreground hover:bg-primary hover:text-white transition-all">
                 <Instagram className="h-5 w-5" />
               </a>
-              <a href="#" className="w-10 h-10 bg-muted rounded-xl flex items-center justify-center text-muted-foreground hover:bg-primary hover:text-white transition-all">
+              <a href="https://t.me/Sina_traidr" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-muted rounded-xl flex items-center justify-center text-muted-foreground hover:bg-primary hover:text-white transition-all">
                 <Send className="h-5 w-5" />
               </a>
             </div>
