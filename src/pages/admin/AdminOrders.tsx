@@ -218,6 +218,18 @@ export default function AdminOrders() {
                         <p className="mt-1 bg-muted rounded p-2">{selectedOrder.notes}</p>
                       </div>
                     )}
+                    {(selectedOrder as any).receipt_image_url && (
+                      <div className="pt-3">
+                        <span className="text-muted-foreground">تصویر فیش واریزی:</span>
+                        <a href={(selectedOrder as any).receipt_image_url} target="_blank" rel="noopener noreferrer">
+                          <img
+                            src={(selectedOrder as any).receipt_image_url}
+                            alt="فیش واریزی"
+                            className="mt-2 max-h-64 rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
+                          />
+                        </a>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 
