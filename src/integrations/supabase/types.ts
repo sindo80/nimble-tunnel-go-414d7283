@@ -154,6 +154,7 @@ export type Database = {
           payer_name: string | null
           payment_reference: string | null
           phone: string | null
+          receipt_image_url: string | null
           shipping_address: string | null
           shipping_amount: number | null
           shipping_city: string | null
@@ -176,6 +177,7 @@ export type Database = {
           payer_name?: string | null
           payment_reference?: string | null
           phone?: string | null
+          receipt_image_url?: string | null
           shipping_address?: string | null
           shipping_amount?: number | null
           shipping_city?: string | null
@@ -198,6 +200,7 @@ export type Database = {
           payer_name?: string | null
           payment_reference?: string | null
           phone?: string | null
+          receipt_image_url?: string | null
           shipping_address?: string | null
           shipping_amount?: number | null
           shipping_city?: string | null

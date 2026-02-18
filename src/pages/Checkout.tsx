@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CreditCard, User, Mail, Phone, MapPin, FileText, CheckCircle, Copy } from 'lucide-react';
+import { CreditCard, User, Mail, Phone, MapPin, FileText, CheckCircle, Copy, Upload, Image } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -37,6 +37,8 @@ export default function Checkout() {
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<'info' | 'payment' | 'done'>('info');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const [form, setForm] = useState({
     fullName: '',
     email: '',
@@ -69,6 +71,21 @@ export default function Checkout() {
     return true;
   };
 
+  const handleReceiptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('حداکثر حجم فایل ۵ مگابایت است');
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      toast.error('فقط فایل تصویری مجاز است');
+      return;
+    }
+    setReceiptFile(file);
+    setReceiptPreview(URL.createObjectURL(file));
+  };
+
   const handleSubmitOrder = async () => {
     const result = checkoutSchema.safeParse(form);
     if (!result.success) {
@@ -82,6 +99,21 @@ export default function Checkout() {
     setLoading(true);
 
     try {
+      // Upload receipt image if provided
+      let receiptImageUrl: string | null = null;
+      if (receiptFile) {
+        const fileExt = receiptFile.name.split('.').pop();
+        const filePath = `${user.id}/${Date.now()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from('payment-receipts')
+          .upload(filePath, receiptFile);
+        if (uploadError) throw uploadError;
+        const { data: urlData } = supabase.storage
+          .from('payment-receipts')
+          .getPublicUrl(filePath);
+        receiptImageUrl = urlData.publicUrl;
+      }
+
       // Create order
       const { data: order, error: orderError } = await supabase
         .from('orders')
@@ -98,6 +130,7 @@ export default function Checkout() {
           payer_card_number: form.payerCardNumber,
           payer_name: form.fullName,
           payment_reference: form.paymentReference,
+          receipt_image_url: receiptImageUrl,
           notes: form.notes || null,
           status: 'pending' as const,
         })
@@ -294,6 +327,26 @@ export default function Checkout() {
                   <Label>شماره پیگیری / شماره مرجع *</Label>
                   <Input value={form.paymentReference} onChange={e => handleChange('paymentReference', e.target.value)} placeholder="شماره پیگیری تراکنش" dir="ltr" />
                   {errors.paymentReference && <p className="text-destructive text-xs mt-1">{errors.paymentReference}</p>}
+                </div>
+                <div>
+                  <Label>تصویر فیش واریزی (اختیاری)</Label>
+                  <div className="mt-1">
+                    {receiptPreview ? (
+                      <div className="relative">
+                        <img src={receiptPreview} alt="فیش واریزی" className="w-full max-h-64 object-contain rounded-lg border" />
+                        <Button variant="destructive" size="sm" className="absolute top-2 left-2" onClick={() => { setReceiptFile(null); setReceiptPreview(null); }}>
+                          حذف
+                        </Button>
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                        <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                        <span className="text-sm text-muted-foreground">آپلود تصویر فیش واریزی</span>
+                        <span className="text-xs text-muted-foreground mt-1">حداکثر ۵ مگابایت</span>
+                        <input type="file" accept="image/*" className="hidden" onChange={handleReceiptChange} />
+                      </label>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <Label>توضیحات (اختیاری)</Label>
