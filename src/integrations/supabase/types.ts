@@ -145,10 +145,13 @@ export type Database = {
         Row: {
           created_at: string
           discount_amount: number | null
+          email: string | null
           final_amount: number
           id: string
           notes: string | null
           order_number: string
+          payer_card_number: string | null
+          payer_name: string | null
           payment_reference: string | null
           phone: string | null
           shipping_address: string | null
@@ -164,10 +167,13 @@ export type Database = {
         Insert: {
           created_at?: string
           discount_amount?: number | null
+          email?: string | null
           final_amount: number
           id?: string
           notes?: string | null
           order_number: string
+          payer_card_number?: string | null
+          payer_name?: string | null
           payment_reference?: string | null
           phone?: string | null
           shipping_address?: string | null
@@ -183,10 +189,13 @@ export type Database = {
         Update: {
           created_at?: string
           discount_amount?: number | null
+          email?: string | null
           final_amount?: number
           id?: string
           notes?: string | null
           order_number?: string
+          payer_card_number?: string | null
+          payer_name?: string | null
           payment_reference?: string | null
           phone?: string | null
           shipping_address?: string | null
@@ -491,6 +500,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_user_count: { Args: never; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
