@@ -2,8 +2,18 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, TrendingUp, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import forexLogo from '@/assets/forex-logo.jpg';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 export function HeroSection() {
+  const [userCount, setUserCount] = useState<number>(0);
+
+  useEffect(() => {
+    supabase.rpc('get_user_count').then(({ data }) => {
+      if (data) setUserCount(data);
+    });
+  }, []);
+
   return (
     <section className="relative overflow-hidden min-h-[85vh] flex items-center gradient-forex chart-pattern">
       {/* Background with logo */}
@@ -68,7 +78,7 @@ export function HeroSection() {
               <div className="text-sm text-muted-foreground mt-1">دقت سیگنال‌ها</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold text-foreground">+۵۰۰۰</div>
+              <div className="text-3xl md:text-4xl font-bold text-foreground">+{userCount.toLocaleString('fa-IR')}</div>
               <div className="text-sm text-muted-foreground mt-1">معامله‌گر فعال</div>
             </div>
             <div className="text-center">
