@@ -22,6 +22,7 @@ interface TutorialFormData {
   thumbnail_url: string;
   duration: string;
   category: string;
+  new_category: string;
   is_free: boolean;
   is_active: boolean;
   sort_order: string;
@@ -30,11 +31,12 @@ interface TutorialFormData {
 const initialFormData: TutorialFormData = {
   title: "",
   description: "",
-  video_type: "embed",
+  video_type: "upload",
   video_url: "",
   thumbnail_url: "",
   duration: "",
   category: "",
+  new_category: "",
   is_free: true,
   is_active: true,
   sort_order: "0",
@@ -49,6 +51,7 @@ export default function AdminTutorials() {
   const [selectedTutorial, setSelectedTutorial] = useState<Tutorial | null>(null);
   const [formData, setFormData] = useState<TutorialFormData>(initialFormData);
   const [uploading, setUploading] = useState(false);
+  const [existingCategories, setExistingCategories] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -62,7 +65,10 @@ export default function AdminTutorials() {
     if (error) {
       toast({ title: "خطا", description: error.message, variant: "destructive" });
     } else {
-      setTutorials((data as Tutorial[]) || []);
+      const list = (data as Tutorial[]) || [];
+      setTutorials(list);
+      const cats = [...new Set(list.map(t => t.category).filter(Boolean))] as string[];
+      setExistingCategories(cats);
     }
     setLoading(false);
   };
@@ -84,7 +90,7 @@ export default function AdminTutorials() {
       toast({ title: "خطا در آپلود", description: error.message, variant: "destructive" });
     } else {
       const { data: { publicUrl } } = supabase.storage.from("tutorial-videos").getPublicUrl(fileName);
-      setFormData(prev => ({ ...prev, video_url: publicUrl }));
+      setFormData(prev => ({ ...prev, video_url: publicUrl, video_type: "upload" }));
       toast({ title: "موفق", description: "ویدیو آپلود شد" });
     }
     setUploading(false);
@@ -92,7 +98,13 @@ export default function AdminTutorials() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.video_url) {
+      toast({ title: "خطا", description: "لطفاً ویدیو آپلود کنید یا لینک وارد کنید", variant: "destructive" });
+      return;
+    }
     setSaving(true);
+
+    const finalCategory = formData.category === "__new__" ? formData.new_category : formData.category;
 
     const tutorialData = {
       title: formData.title,
@@ -101,7 +113,7 @@ export default function AdminTutorials() {
       video_url: formData.video_url,
       thumbnail_url: formData.thumbnail_url || null,
       duration: formData.duration || null,
-      category: formData.category || null,
+      category: finalCategory || null,
       is_free: formData.is_free,
       is_active: formData.is_active,
       sort_order: parseInt(formData.sort_order) || 0,
@@ -138,6 +150,7 @@ export default function AdminTutorials() {
       thumbnail_url: t.thumbnail_url || "",
       duration: t.duration || "",
       category: t.category || "",
+      new_category: "",
       is_free: t.is_free,
       is_active: t.is_active,
       sort_order: t.sort_order.toString(),
@@ -162,7 +175,7 @@ export default function AdminTutorials() {
     <AdminLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">مدیریت ویدیوهای آموزشی</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">مدیریت ویدیوها</h1>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={() => { setSelectedTutorial(null); setFormData(initialFormData); setDialogOpen(true); }}>
@@ -170,7 +183,7 @@ export default function AdminTutorials() {
                 افزودن ویدیو
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto w-[95vw] sm:w-full">
               <DialogHeader>
                 <DialogTitle>{selectedTutorial ? "ویرایش ویدیو" : "افزودن ویدیو جدید"}</DialogTitle>
               </DialogHeader>
@@ -183,56 +196,71 @@ export default function AdminTutorials() {
                   <Label>توضیحات</Label>
                   <Textarea value={formData.description} onChange={e => setFormData(p => ({ ...p, description: e.target.value }))} rows={3} />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>نوع ویدیو *</Label>
-                    <Select value={formData.video_type} onValueChange={(v: "embed" | "upload") => setFormData(p => ({ ...p, video_type: v, video_url: "" }))}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="embed">لینک خارجی (یوتیوب/آپارات)</SelectItem>
-                        <SelectItem value="upload">آپلود مستقیم</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>دسته‌بندی</Label>
-                    <Input value={formData.category} onChange={e => setFormData(p => ({ ...p, category: e.target.value }))} placeholder="مثلاً: تحلیل تکنیکال" />
-                  </div>
+
+                {/* Video: Upload from device */}
+                <div className="space-y-2">
+                  <Label>آپلود ویدیو از گالری</Label>
+                  <input ref={fileInputRef} type="file" className="hidden" accept="video/*" onChange={handleFileUpload} />
+                  {formData.video_type === "upload" && formData.video_url ? (
+                    <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/50">
+                      <div className="flex items-center gap-2">
+                        <Video className="h-5 w-5 text-primary" />
+                        <span className="text-sm truncate max-w-[250px]">{formData.video_url.split("/").pop()}</span>
+                      </div>
+                      <Button type="button" variant="ghost" size="icon" onClick={() => setFormData(p => ({ ...p, video_url: "", video_type: "upload" }))}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button type="button" variant="outline" className="w-full h-16 border-dashed" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+                      {uploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Upload className="h-5 w-5 ml-2" />انتخاب ویدیو (حداکثر ۱۰۰MB)</>}
+                    </Button>
+                  )}
                 </div>
 
-                {formData.video_type === "embed" ? (
-                  <div className="space-y-2">
-                    <Label>لینک ویدیو (YouTube / آپارات) *</Label>
-                    <Input value={formData.video_url} onChange={e => setFormData(p => ({ ...p, video_url: e.target.value }))} dir="ltr" placeholder="https://www.youtube.com/watch?v=..." required />
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <Label>آپلود ویدیو *</Label>
-                    <input ref={fileInputRef} type="file" className="hidden" accept="video/*" onChange={handleFileUpload} />
-                    {formData.video_url ? (
-                      <div className="flex items-center justify-between p-3 border rounded-lg bg-background">
-                        <div className="flex items-center gap-2">
-                          <Video className="h-5 w-5 text-primary" />
-                          <span className="text-sm truncate max-w-[300px]">{formData.video_url.split("/").pop()}</span>
-                        </div>
-                        <Button type="button" variant="ghost" size="icon" onClick={() => setFormData(p => ({ ...p, video_url: "" }))}>
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <Button type="button" variant="outline" className="w-full h-20 border-dashed" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
-                        {uploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Upload className="h-5 w-5 ml-2" />انتخاب ویدیو (حداکثر ۱۰۰MB)</>}
-                      </Button>
-                    )}
-                  </div>
-                )}
+                {/* Video: Embed link (optional) */}
+                <div className="space-y-2">
+                  <Label>یا لینک ویدیو (YouTube / آپارات)</Label>
+                  <Input
+                    value={formData.video_type === "embed" ? formData.video_url : ""}
+                    onChange={e => setFormData(p => ({ ...p, video_url: e.target.value, video_type: "embed" }))}
+                    dir="ltr"
+                    placeholder="https://www.youtube.com/watch?v=..."
+                  />
+                </div>
+
+                {/* Category */}
+                <div className="space-y-2">
+                  <Label>دسته‌بندی</Label>
+                  <Select
+                    value={formData.category}
+                    onValueChange={v => setFormData(p => ({ ...p, category: v }))}
+                  >
+                    <SelectTrigger><SelectValue placeholder="انتخاب دسته‌بندی" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">بدون دسته‌بندی</SelectItem>
+                      {existingCategories.map(c => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                      <SelectItem value="__new__">+ دسته‌بندی جدید</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {formData.category === "__new__" && (
+                    <Input
+                      value={formData.new_category}
+                      onChange={e => setFormData(p => ({ ...p, new_category: e.target.value }))}
+                      placeholder="نام دسته‌بندی جدید"
+                      className="mt-2"
+                    />
+                  )}
+                </div>
 
                 <div className="space-y-2">
                   <Label>لینک تصویر بندانگشتی</Label>
                   <Input value={formData.thumbnail_url} onChange={e => setFormData(p => ({ ...p, thumbnail_url: e.target.value }))} dir="ltr" placeholder="https://..." />
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label>مدت زمان</Label>
                     <Input value={formData.duration} onChange={e => setFormData(p => ({ ...p, duration: e.target.value }))} placeholder="مثلاً: ۱۵:۳۰" />

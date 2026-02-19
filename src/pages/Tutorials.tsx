@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { useTutorials } from "@/hooks/useTutorials";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,17 +6,89 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Search, Play, Clock, Eye, Lock } from "lucide-react";
+import { Search, Play, Clock, Eye, Lock, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Tutorial } from "@/hooks/useTutorials";
 
 function getEmbedUrl(url: string): string {
-  // YouTube
   const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
   if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`;
-  // Aparat
   const apMatch = url.match(/aparat\.com\/v\/([a-zA-Z0-9]+)/);
   if (apMatch) return `https://www.aparat.com/video/video/embed/videohash/${apMatch[1]}/vt/frame`;
   return url;
+}
+
+function TutorialCarousel({ tutorials, onSelect }: { tutorials: Tutorial[]; onSelect: (t: Tutorial) => void }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [isPaused, setIsPaused] = useState(false);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || tutorials.length < 3) return;
+
+    let animId: number;
+    const speed = 1; // px per frame
+
+    const animate = () => {
+      if (!isPaused && el) {
+        el.scrollLeft += speed;
+        // loop: when scrolled past half (duplicated content), reset
+        if (el.scrollLeft >= el.scrollWidth / 2) {
+          el.scrollLeft = 0;
+        }
+      }
+      animId = requestAnimationFrame(animate);
+    };
+    animId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animId);
+  }, [isPaused, tutorials.length]);
+
+  if (tutorials.length === 0) return null;
+
+  // Duplicate items for seamless loop
+  const items = [...tutorials, ...tutorials];
+
+  return (
+    <div
+      className="relative group"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+      onTouchStart={() => setIsPaused(true)}
+      onTouchEnd={() => setIsPaused(false)}
+    >
+      <div
+        ref={scrollRef}
+        className="flex gap-4 overflow-x-hidden py-2"
+        style={{ scrollBehavior: "auto" }}
+      >
+        {items.map((t, i) => (
+          <div
+            key={`${t.id}-${i}`}
+            className="shrink-0 w-[260px] sm:w-[300px] cursor-pointer group/card"
+            onClick={() => onSelect(t)}
+          >
+            <div className="relative aspect-video bg-muted/50 rounded-xl overflow-hidden">
+              {t.thumbnail_url ? (
+                <img src={t.thumbnail_url} alt={t.title} className="w-full h-full object-cover group-hover/card:scale-105 transition-transform duration-300" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
+                  <Play className="h-10 w-10 text-primary/60" />
+                </div>
+              )}
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/card:opacity-100 transition-opacity flex items-center justify-center">
+                <div className="w-12 h-12 rounded-full bg-primary/90 flex items-center justify-center">
+                  <Play className="h-5 w-5 text-primary-foreground fill-current" />
+                </div>
+              </div>
+              {t.category && (
+                <Badge className="absolute top-2 right-2 text-xs" variant="secondary">{t.category}</Badge>
+              )}
+            </div>
+            <p className="mt-2 text-sm font-medium line-clamp-1 text-center">{t.title}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export default function Tutorials() {
@@ -40,6 +112,14 @@ export default function Tutorials() {
           <h1 className="text-4xl font-bold">آموزش‌های ویدیویی</h1>
           <p className="text-muted-foreground max-w-2xl mx-auto">آموزش‌های تخصصی فارکس از مبتدی تا پیشرفته</p>
         </div>
+
+        {/* Auto-scrolling carousel */}
+        {!loading && tutorials.length > 0 && (
+          <div className="space-y-3">
+            <h2 className="text-lg font-bold">جدیدترین ویدیوها</h2>
+            <TutorialCarousel tutorials={tutorials.slice(0, 10)} onSelect={setSelectedTutorial} />
+          </div>
+        )}
 
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
