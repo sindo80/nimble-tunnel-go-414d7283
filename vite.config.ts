@@ -4,15 +4,12 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
 
-// ⚠️ حتما نام زیرپوشه GitHub (repository) را داخل base بنویس
 export default defineConfig(({ mode }) => ({
-  base: '/nimble-tunnel-go/',  // <--- این خط بسیار مهم است
+  base: '/nimble-tunnel-go/',  // <--- این خط مهم است
   server: {
     host: "::",
     port: 8080,
-    hmr: {
-      overlay: false,
-    },
+    hmr: { overlay: false },
   },
   plugins: [
     react(),
@@ -36,29 +33,12 @@ export default defineConfig(({ mode }) => ({
         lang: "fa",
         start_url: "/",
         icons: [
-          {
-            src: "/favicon.jpg",
-            sizes: "192x192",
-            type: "image/jpeg",
-          },
-          {
-            src: "/favicon.jpg",
-            sizes: "512x512",
-            type: "image/jpeg",
-          },
-          {
-            src: "/favicon.jpg",
-            sizes: "512x512",
-            type: "image/jpeg",
-            purpose: "maskable",
-          },
+          { src: "/favicon.jpg", sizes: "192x192", type: "image/jpeg" },
+          { src: "/favicon.jpg", sizes: "512x512", type: "image/jpeg" },
+          { src: "/favicon.jpg", sizes: "512x512", type: "image/jpeg", purpose: "maskable" },
         ],
       },
     }),
   ].filter(Boolean),
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
-  },
+  resolve: { alias: { "@": path.resolve(__dirname, "./src") } },
 }));
